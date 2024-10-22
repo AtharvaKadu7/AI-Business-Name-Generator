@@ -1,70 +1,107 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import axios from "../axios";
-import {useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Loader from "../components/Loader";
 
+// A sample dictionary for suggestions (you can replace this with an API or a larger list)
+const dictionary = [
+  "ability", "absence", "academy", "account", "accuracy", "achievement", "action",
+  "activity", "adventure", "agency", "agreement", "analysis", "application", "appointment",
+  "argument", "attitude", "business", "capacity", "challenge", "choice", "climate",
+  "company", "competition", "concept", "condition", "creativity", "development", "direction",
+  "discovery", "education", "enterprise", "environment", "experience", "expression",
+  "imagination", "impact", "influence", "innovation", "intelligence", "knowledge",
+  "leadership", "management", "opportunity", "organization", "participation", "performance",
+  "philosophy", "planning", "potential", "problem", "progress", "project", "quality",
+  "reality", "recognition", "relationship", "responsibility", "solution", "strategy", "success",
+  "technology", "theory", "understanding", "vision" , "cake" , "car" , "business" , "product" , "dairy" , "shop" , "pet",
+  "dog" , "cat" , "bank"
+];
+
 const Home = () => {
-  const [serachText, setSearchText] = useState("");
-  const [resultData, setResultData] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handlerSubmit = async (e) => {
+  const handleInputChange = (e) => {
+    const input = e.target.value;
+    setSearchText(input);
+
+    // Filter dictionary-based suggestions based on input
+    if (input.length > 0) {
+      const filtered = dictionary.filter((word) =>
+        word.toLowerCase().startsWith(input.toLowerCase())
+      );
+      setFilteredSuggestions(filtered);
+      setShowSuggestions(true);
+    } else {
+      setFilteredSuggestions([]);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    setSearchText(suggestion);
+    setShowSuggestions(false);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    await axios
-      .post("/predict", {
-        word: serachText,
-      })
-      .then((data) => {
-        setLoading(false);
-        setResultData(data.data);
-        navigate("/search", {state: data.data});
-      })
-      .catch((err) => {
-        setLoading(false);
-        console.log(err);
-      });
+    try {
+      const { data } = await axios.post("/predict", { word: searchText });
+      setLoading(false);
+      navigate("/search", { state: data });
+    } catch (err) {
+      setLoading(false);
+      console.log(err);
+    }
   };
 
   return (
     <>
-    {
-      loading && <Loader />
-    }
+      {loading && <Loader />}
       <Container>
         <Main>
           <h1>Business Name Generator</h1>
-          <h3>
-            generate a short, brandable business name using artificial
-            intelligence
-          </h3>
+          <h3>Generate a short, brandable business name using artificial intelligence</h3>
 
           <InputField>
             <input
               type="text"
-              placeholder="Enter your business name"
-              value={serachText}
-              onChange={(e) => setSearchText(e.target.value)}
+              placeholder="Enter your business name or keyword"
+              value={searchText}
+              onChange={handleInputChange}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              onFocus={() => searchText && setShowSuggestions(true)}
             />
-            <Button onClick={handlerSubmit}>Generate</Button>
+            <Button onClick={handleSubmit}>Generate</Button>
           </InputField>
+
+          {/* Suggestion Dropdown */}
+          {showSuggestions && filteredSuggestions.length > 0 && (
+            <SuggestionDropdown>
+              {filteredSuggestions.map((suggestion, index) => (
+                <li
+                  key={index}
+                  onClick={() => handleSuggestionClick(suggestion)}
+                >
+                  {suggestion}
+                </li>
+              ))}
+            </SuggestionDropdown>
+          )}
         </Main>
       </Container>
 
       <About>
         <Description>
           <h1>Why a branded name?</h1>
-          <p>
-            For new businesses, naming options can seem quite limited. Short
-            domains are very expensive, yet longer multi-word names don’t
-            inspire confidence.
-          </p>
-          <p>
-            In 2023 many startups are choosing a short, branded name - a name
-            that’s unique, memorable and affordable.
-          </p>
+          <p>For new businesses, naming options can seem quite limited...</p>
+          <p>In 2023 many startups are choosing a short, branded name...</p>
         </Description>
       </About>
     </>
@@ -133,6 +170,27 @@ const Button = styled.button`
 
   &:active {
     scale: 1.05;
+  }
+`;
+
+const SuggestionDropdown = styled.ul`
+  margin-top: 5px;
+  list-style: none;
+  padding: 10px;
+  width: 400px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  text-align: left;
+  color: #000;
+
+  li {
+    padding: 10px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #f1f1f1;
+    }
   }
 `;
 
